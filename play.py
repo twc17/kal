@@ -57,15 +57,19 @@ def get_workstation_vlans(switch, user, password):
 
     return vlans
 
+def show_vlan_ids(switch, user, password, vlans):
+
+    for vl in vlans:
+        print(execute(switch, user, password, "sh vl id " + vl + " | ex Te"))
 
 def main():
     switch, user, password = user_input()
 
     if (check_host(switch)):
         output = get_workstation_vlans(switch, user, password)
-        print()
         for vlan in output:
             print(vlan)
+        show_vlan_ids(switch, user, password, output)
     else:
         print("Check hostname")
         sys.exit(1)

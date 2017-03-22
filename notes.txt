@@ -16,6 +16,8 @@ bx174a-a-1.c3750#sho vlan br | inc (W-I|WKSTN)
 2021
 3830
 
+#TROY: Done up to here
+
 3. Do a "sho vlan id <vlan_id> | exc Te"
 bx174a-a-1.c3750#sho vlan id 468 | ex Te
 VLAN Name                             Status    Ports
