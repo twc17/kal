@@ -3,7 +3,7 @@
 # Import statements
 import sys
 import socket
-import paramiko
+import netmiko
 import getpass
 
 def user_input():
@@ -18,27 +18,6 @@ def user_input():
 
     return str(switch), str(user), str(password)
 
-def execute(hst, usr, passwd, cmd):
-    ssh = paramiko.SSHClient()
-    # Set AutoAddPolicy so that we are not prompted to add new hosts to know_hosts file
-    ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-    try:
-        # All PittNET switches run SSH on default port 22
-        # look_for_keys=False keeps script from trying to use keypair, we want plaintext passwd
-        ssh.connect(hst, 22, usr, passwd, look_for_keys=False)
-        # stdin, stdout, sterr are all set here, could write if needed
-        #stdin, stdout, stderr = ssh.exec_command("terminal length 0")
-        stdin, stdout, stderr = ssh.exec_command(cmd)
-        output = stdout.read().strip()
-
-    except paramiko.ssh_exception.AuthenticationException as e:
-        print("Authentication failure!")
-        sys.exit(1)
-
-    # stdout is written in 'bytes'. Needs to be decoded before priting
-    ssh.close()
-    return output.decode(encoding='UTF-8')
-
 def check_host(host):
     try:
         socket.gethostbyname(host)
@@ -47,10 +26,21 @@ def check_host(host):
         return 0
 
 def get_workstation_vlans(switch, user, password):
-    output = execute(switch, user, password, "sh vl br | i (W-I|WKSTN)")
-    output = output.split()
+    cmd = "sh vl br | i (W-I|WKSTN)"
+    ssh = netmiko.ConnectHandler(
+            device_type = 'cisco_ios',
+            ip = switch,
+            username = user,
+            password = password)
 
-    print(output)
+    ssh.enable()
+    result = ssh.find_prompt() + "\n"
+    result += ssh.send_command(cmd, delay_factor=2)
+    ssh.disconnect()
+
+    output = result.split()
+
+    #print(output)
 
     vlans = []
     ports = []
@@ -63,18 +53,44 @@ def get_workstation_vlans(switch, user, password):
 
     return vlans, ports
 
+def get_running_config(switch, user, password, ports):
+    ssh = netmiko.ConnectHandler(
+            device_type = 'cisco_ios',
+            ip = switch,
+            username = user,
+            password = password)
+
+    ssh.enable()
+    result = ssh.find_prompt() + "\n"
+
+    for p in ports:
+        result += ssh.send_command("sh run int " + p + " | inc (max|desc|access|max|speed|duplex)|interface", delay_factor=2)
+        result += '\n\n'
+
+    ssh.disconnect()
+
+    return result
+
 def main():
     switch, user, password = user_input()
 
     if (check_host(switch)):
+        switch = socket.gethostbyname(switch)
         vlans, ports = get_workstation_vlans(switch, user, password)
+        print("Workstation VLANs")
         for v in vlans:
             print(v)
 
         print()
-
+        print("Access ports in workstation VLANs")
         for p in ports:
             print(p)
+
+        print()
+        
+        config = get_running_config(switch, user, password, ports)
+        if config is not '':
+            print(config)
     else:
         print("Check hostname")
         sys.exit(1)
