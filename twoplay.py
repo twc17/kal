@@ -122,7 +122,7 @@ def main():
                 print("!Done with switch " + s)
 
                 print()
-                go = input(">Ready for the next switch? (y/N): ")
+                go = input(">Ready for the next switch? (y/N): ").lower()
                 if go != 'y':
                     print("!ERROR: User canceled")
                     sys.exit(1)
