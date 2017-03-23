@@ -16,7 +16,7 @@ bx174a-a-1.c3750#sho vlan br | inc (W-I|WKSTN)
 2021
 3830
 
-#TROY: Done up to here
+#3/22/17 TROY: Done up to here
 #-> I think that step 3 is unnecessary as doing 'ex Te' removes the entire line
 #-> that has the trunk port. All of the access ports for the VLAN should be listed
 #-> in the output of step 1
@@ -38,6 +38,9 @@ interface GigabitEthernet1/0/10
 description obx-bx174a-0092
 switchport access vlan 468
 switchport port-security maximum 2
+
+#3/23/17 TROY
+#Done up to here now. Just need to implement the function for making the actual config changes and should be good to go!
 
 5a. Save the output and add the following commands for 3850
 switchport port-security maximum 2 <-- negiate this line if port-security max is already set

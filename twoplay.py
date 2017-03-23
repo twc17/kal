@@ -1,6 +1,7 @@
 #!/usr/bin/python3
 
 # Import statements
+import os
 import sys
 import socket
 import netmiko
@@ -89,6 +90,7 @@ def main():
         for s in switches:
             print("!Current Switch: " + s)
             if (check_host(s)):
+                os.mkdir(s)
                 ip = socket.gethostbyname(s)
 
                 print("*Getting workstation VLANs and access ports...")
@@ -100,19 +102,19 @@ def main():
                 print("*Done")
 
                 print("*Writing workstation VLAN IDs to file " + s + "-vlans.txt ...")
-                f = open(s + '-vlans.txt', 'w')
+                f = open(s + "/" + s + '-vlans.txt', 'w')
                 f.write('\n'.join(vlans))
                 f.close()
                 print("*Done")
 
                 print("*Writing workstation access ports to file " + s + "-ports.txt ...")
-                f = open(s + '-ports.txt', 'w')
+                f = open(s + "/" + s + '-ports.txt', 'w')
                 f.write('\n'.join(ports))
                 f.close()
                 print("*Done")
 
                 print("*Writing config before changes to file " + s + "-before.txt ...")
-                f = open(s + '-before.txt', 'w')
+                f = open(s + "/" + s + '-before.txt', 'w')
                 f.write(config)
                 f.close()
                 print("*Done")
@@ -120,7 +122,7 @@ def main():
                 print("!Done with switch " + s)
 
                 print()
-                go = input("Ready for the next switch? (y/N): ")
+                go = input(">Ready for the next switch? (y/N): ")
                 if go != 'y':
                     print("!ERROR: User canceled")
                     sys.exit(1)
