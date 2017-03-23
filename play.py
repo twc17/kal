@@ -4,8 +4,6 @@
 import sys
 import socket
 import paramiko
-import cgi
-import cgitb
 import getpass
 
 def user_input():
@@ -20,22 +18,24 @@ def user_input():
 
     return str(switch), str(user), str(password)
 
-
 def execute(hst, usr, passwd, cmd):
     ssh = paramiko.SSHClient()
     # Set AutoAddPolicy so that we are not prompted to add new hosts to know_hosts file
     ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
     try:
         # All PittNET switches run SSH on default port 22
+        # look_for_keys=False keeps script from trying to use keypair, we want plaintext passwd
         ssh.connect(hst, 22, usr, passwd, look_for_keys=False)
         # stdin, stdout, sterr are all set here, could write if needed
         stdin, stdout, stderr = ssh.exec_command(cmd)
         output = stdout.read().strip()
+
     except paramiko.ssh_exception.AuthenticationException as e:
-        print("<p> Oops, looks like you entered your username or password wrong :/ </p>")
+        print("Authentication failure!")
         sys.exit(1)
 
     # stdout is written in 'bytes'. Needs to be decoded before priting
+    ssh.close()
     return output.decode(encoding='UTF-8')
 
 def check_host(host):
@@ -49,27 +49,31 @@ def get_workstation_vlans(switch, user, password):
     output = execute(switch, user, password, "sh vl br | i (W-I|WKSTN)")
     output = output.split()
 
+    print(output)
+
     vlans = []
+    ports = []
 
     for v in output:
         if v.isdigit():
             vlans.append(v)
+        if v.find("Gi") is not -1:
+            ports.append(v.replace(',', ''))
 
-    return vlans
-
-def show_vlan_ids(switch, user, password, vlans):
-
-    for vl in vlans:
-        print(execute(switch, user, password, "sh vl id " + vl + " | ex Te"))
+    return vlans, ports
 
 def main():
     switch, user, password = user_input()
 
     if (check_host(switch)):
-        output = get_workstation_vlans(switch, user, password)
-        for vlan in output:
-            print(vlan)
-        show_vlan_ids(switch, user, password, output)
+        vlans, ports = get_workstation_vlans(switch, user, password)
+        for v in vlans:
+            print(v)
+
+        print()
+
+        for p in ports:
+            print(p)
     else:
         print("Check hostname")
         sys.exit(1)
