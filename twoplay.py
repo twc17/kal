@@ -75,24 +75,38 @@ def main():
     switch, user, password = user_input()
 
     if (check_host(switch)):
-        switch = socket.gethostbyname(switch)
-        vlans, ports = get_workstation_vlans(switch, user, password)
-        print("Workstation VLANs")
-        for v in vlans:
-            print(v)
+        ip = socket.gethostbyname(switch)
+
+        print("*Getting workstation VLANs and access ports...")
+        vlans, ports = get_workstation_vlans(ip, user, password)
+        print("*Done!") 
+
+        print("*Building config...")
+        config = get_running_config(ip, user, password, ports)
+        print("*Done!")
+
+        print("*Writing workstation VLAN IDs to file " + switch + "-vlans.txt")
+        f = open(switch + '-vlans.txt', 'w')
+        f.write('\n'.join(vlans))
+        f.close()
+        print("*Done!")
+
+        print("*Writing workstation access ports to file " + switch + "-ports.txt")
+        f = open(switch + '-ports.txt', 'w')
+        f.write('\n'.join(ports))
+        f.close()
+        print("*Done!")
+
+        print("*Writing config to file...")
+        f = open(switch + '-before.txt', 'w')
+        f.write(config)
+        f.close()
+        print("*Done!")
 
         print()
-        print("Access ports in workstation VLANs")
-        for p in ports:
-            print(p)
-
-        print()
-        
-        config = get_running_config(switch, user, password, ports)
-        if config is not '':
-            print(config)
+        print("Current config for " + switch + " written to " + switch + "-before.txt")
     else:
-        print("Check hostname")
+        print("Check hostname!")
         sys.exit(1)
 
 # RUN
