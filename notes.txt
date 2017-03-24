@@ -56,3 +56,6 @@ power inline auto
 source template BX_VOIP_VLAN_361_TEMPLATE
 srr-queue bandwidth share 1 30 35 5      
 priority-queue out
+
+#3/24/17 TROY
+#Done with all of the functionality, just making some things cleaner

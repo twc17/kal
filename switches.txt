@@ -1,2 +1,3 @@
 clg62-a-1.c3850.net.pitt.edu
-bx174a-a-1.c3750.net.pitt.edu
+hl378-a-1.c3750.net.pitt.edu
+pa235-a-1.c3750.net.pitt.edu

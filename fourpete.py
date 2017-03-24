@@ -60,7 +60,7 @@ def check_host(host):
 #   ports<Array[String]> = Access ports in workstation VLANs
 def get_workstation_vlans(ssh):
     # COMMAND THAT WILL RUN ON SWITCH
-    cmd = "sh vl br | i (W-I|WKSTN)"
+    cmd = "sh vl br | i (W-I|WKSTN|WKST)"
     result = ssh.find_prompt() + "\n"
     # Send command to switch and get output
     result += ssh.send_command(cmd, delay_factor=2)
@@ -109,42 +109,43 @@ def get_running_config(ssh, ports):
 # Return:
 #   result<Array[String]> = config commands that were applied to the switch
 def config_access_ports(ssh, config, switch):
-    # COMMANDS THAT WILL RUN ON SWITCH
-    commands = [
-            'no logging event link-status',
-            'power inline auto',
-            'source template BX_VOIP_VLAN_361_TEMPLATE']
-
     result = []
 
-    # If we're working with a c3750 switch, we need to add two additional commands
-    if switch.find("3750") is not -1:
-        # COMMANDS THAT WILL RUN ON SWITCH
-        commands.append("srr-queue bandwidth share 1 30 35 5")
-        commands.append("priority-queue out")
-    
     # For each access port:
     for p in config:
+        # COMMANDS THAT WILL RUN ON SWITCH
+        commands = [
+                'no logging event link-status',
+                'power inline auto',
+                'source template BX_VOIP_VLAN_361_TEMPLATE']
+
+        # If we're working with a c3750 switch, we need to add two additional commands
+        if switch.find("3750") is not -1:
+            # COMMANDS THAT WILL RUN ON SWITCH
+            commands.append("srr-queue bandwidth share 1 30 35 5")
+            commands.append("priority-queue out")
+    
         # Sometimes the switch name prompt gets caught in the runnig config
         # We want to make sure we're working with only interfaces
         if p.find("interface") is not -1:
             iface = p.split()
             # COMMANDS THAT WILL RUN ON SWITCH
             # should be 'interface GigabitEthernetX/X/XX'
-            commands.insert(0,iface[0])
+            commands.insert(0,iface[0] + " " + iface[1])
             # If the port already has a port-security maximum set
             if p.find("maximum") is not -1:
                 # Send config commands to switch
-                result.append(ssh.send_config_set(commands))
+                # result.append(ssh.send_config_set(commands))
+                print("-Command would be sent here")
             # If the port has no port-sexurity maximum set, set it to 2
             else:
                 # COMMANDS THAT WILL RUN ON SWITCH
                 commands.append("switchport port-security maximum 2")
                 # Send config commands to switch
-                result.append(ssh.send_config_set(commands))
-
-    # DEBUG
-    # print(commands)
+                # result.append(ssh.send_config_set(commands))
+                print("-Command would be sent here")
+        # DEBUG
+        print(commands)
 
     # Return full list of commands that were run on the switch
     return result
@@ -197,7 +198,12 @@ def main():
                 # Get the VLAN IDs and access ports for workstaion VLANs and store in arrays
                 print("*Getting workstation VLANs and access ports...")
                 vlans, ports = get_workstation_vlans(ssh)
-                print("*Done") 
+                print("*Done")
+
+                # Just in case there are no workstation vlans on the switch, skip it
+                if len(vlans) == 0:
+                    print("!No work station VLANs, skipping")
+                    continue
 
                 # Get the running config for access ports in workstation VLANs and store in array
                 # This is before any changes have been made to the switch
@@ -231,7 +237,7 @@ def main():
 
                 # Apply changes to switch
                 print("*Sending new config to switch...")
-                new = config_access_ports(ssh, config, switch)
+                new = config_access_ports(ssh, config, s)
                 print("*Done")
 
                 # Write the changes that we made to a file
@@ -263,7 +269,7 @@ def main():
 
                 # Gives the user a moment to review the output files that were generated, and that everything went okay
                 # Make sure we're ready for the next switch
-                print("*Review the output files if needed. No changes have been made yet")
+                print("!Please review output files before moving on")
                 go = input(">Ready for the next switch? (y/N): ").lower()
                 if go != 'y':
                     print("!ERROR: User canceled")
