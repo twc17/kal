@@ -229,9 +229,31 @@ def main():
 
                 # Done with the 'before' information
 
-                # TROY
-                # This is where I need to add the rest of the program
-                # At this point, the program will make and commit the changes to the access ports
+                # Apply changes to switch
+                print("*Sending new config to switch...")
+                new = config_access_ports(ssh, config, switch)
+                print("*Done")
+
+                # Write the changes that we made to a file
+                print("*Writing config output to file " + s + "-config.txt ...")
+                f = open(s + "/" + s + '-config.txt', 'w')
+                f.write('\n'.join(new))
+                f.close()
+                print("*Done")
+
+                # Get the new running config
+                print("*Building new config...")
+                config_new = get_running_config(ssh, ports)
+                print("*Done")
+
+                # Write new config to file
+                print("*Writing new config changes to file " + s + "-after.txt ...")
+                f = open(s + "/" + s + '-after.txt', 'w')
+                f.write('\n\n'.join(config_new))
+                f.close()
+                print("*Done")
+
+                # Done with the 'after' stuff
 
                 # We're done with this switch
                 print("!Done with switch " + s)
