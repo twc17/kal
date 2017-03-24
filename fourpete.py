@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-# Title: twoplay.py (access_port_voip_config.py)
+# Title: fourpete.py (access_port_voip_config.py)
 # Author: Troy W. Caro <twc17@pitt.edu>
 # Date: March 23, 2017 <3/23/17>
 #
@@ -53,32 +53,17 @@ def check_host(host):
 
 # Connect to an edge switch and get VLAN IDs and access ports for workstation VLANs
 # Parameters:
-#   switch<String> = IP address of the switch to connect to
-#   user<String> = Username to use when connecting
-#   password<String> = Password
+#   ssh<Netmiko> = Netmiko SSH object - this is the connection to the switch
 #
 # Return:
 #   vlans<Array[String]> = VLAN IDs of workstation VLANs
 #   ports<Array[String]> = Access ports in workstation VLANs
-def get_workstation_vlans(switch, user, password):
+def get_workstation_vlans(ssh):
     # COMMAND THAT WILL RUN ON SWITCH
     cmd = "sh vl br | i (W-I|WKSTN)"
-    # Build the ssh object
-    # Here is where we can specify anything specific about the switch
-    #   device type, secrete phrase, etc
-    ssh = netmiko.ConnectHandler(
-            device_type = 'cisco_ios',
-            ip = switch,
-            username = user,
-            password = password)
-
-    # Open ssh connection
-    ssh.enable()
     result = ssh.find_prompt() + "\n"
     # Send command to switch and get output
     result += ssh.send_command(cmd, delay_factor=2)
-    # Close connection
-    ssh.disconnect()
 
     # This is the entire output of the command split into an array by whitespace
     output = result.split()
@@ -99,34 +84,18 @@ def get_workstation_vlans(switch, user, password):
 
 # Connect to an edge switch and get the running config for a list of access ports
 # Parameters:
-#   switch<String> = IP address of the switch to connect to
-#   user<String> = Username to use when connecting
-#   password<String> = Password
+#   ssh<Netmiko> = Netmiko SSH object - this is the connection to the switch
 #   ports<Array[String]> = List of access ports
 #
 # Return:
 #   result<String> = Running config for list of access ports
-def get_running_config(switch, user, password, ports):
-    # Build the ssh object
-    # Here is where we can specify anything specific about the switch
-    #   device type, secrete phrase, etc
-    ssh = netmiko.ConnectHandler(
-            device_type = 'cisco_ios',
-            ip = switch,
-            username = user,
-            password = password)
-
-    # Open ssh connection
-    ssh.enable()
+def get_running_config(ssh, ports):
     result = ssh.find_prompt() + "\n"
 
     for p in ports:
         # COMMAND THAT WILL RUN ON SWITCH
         result += ssh.send_command("sh run int " + p + " | inc (max|desc|access|max|speed|duplex)|interface", delay_factor=2)
         result += '\n\n'
-
-    # Close connection
-    ssh.disconnect()
 
     # Returns the entire running config of access ports as one string
     return result
@@ -161,6 +130,18 @@ def main():
             # Let us know which one we're working with
             print("!Current Switch: " + s)
             if (check_host(s)):
+                # Build the ssh object
+                # Here is where we can specify anything specific about the switch
+                #   device type, secrete phrase, etc
+                ssh = netmiko.ConnectHandler(
+                        device_type = 'cisco_ios',
+                        ip = s,
+                        username = user,
+                        password = password)
+
+                # Open ssh connection
+                ssh.enable()
+
                 # Make a dir for each switch as each switch will generate a few output files
                 os.mkdir(s)
                 # Switch hostname to IP address
@@ -168,13 +149,13 @@ def main():
 
                 # Get the VLAN IDs and access ports for workstaion VLANs and store in arrays
                 print("*Getting workstation VLANs and access ports...")
-                vlans, ports = get_workstation_vlans(ip, user, password)
+                vlans, ports = get_workstation_vlans(ssh)
                 print("*Done") 
 
                 # Get the running config for access ports in workstation VLANs and store in array
                 # This is before any changes have been made to the switch
                 print("*Building config...")
-                config = get_running_config(ip, user, password, ports)
+                config = get_running_config(ssh, ports)
                 print("*Done")
 
                 # Create new file and write workstation VLAN IDs to it
@@ -204,14 +185,12 @@ def main():
                 # TROY
                 # This is where I need to add the rest of the program
                 # At this point, the program will make and commit the changes to the access ports
-                #
-                # I'm also thinking about building the ssh object in the for loop of the main function (opening and closing)
-                # then passing it as a parameter to the functions to grab the info and make changes to the switches
-                # That way each switch can be done with just one ssh connection instead of a bunch of seperate ones
-                # ^ Yeah this is a much better idea
 
                 # We're done with this switch
                 print("!Done with switch " + s)
+
+                # Close ssh connection to switch
+                ssh.disconnect()
 
                 print()
                 # Gives the user a moment to review the output files that were generated, and that everything went okay
