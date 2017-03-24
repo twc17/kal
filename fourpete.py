@@ -88,16 +88,65 @@ def get_workstation_vlans(ssh):
 #   ports<Array[String]> = List of access ports
 #
 # Return:
-#   result<String> = Running config for list of access ports
+#   result<Array[String]> = Running config for list of access ports
 def get_running_config(ssh, ports):
-    result = ssh.find_prompt() + "\n"
+    result = []
+    result.append(ssh.find_prompt() + "\n")
 
     for p in ports:
         # COMMAND THAT WILL RUN ON SWITCH
-        result += ssh.send_command("sh run int " + p + " | inc (max|desc|access|max|speed|duplex)|interface", delay_factor=2)
-        result += '\n\n'
+        result.append(ssh.send_command("sh run int " + p + " | inc (max|desc|access|max|speed|duplex)|interface", delay_factor=2))
 
     # Returns the entire running config of access ports as one string
+    return result
+
+# Connect to an edge switch and make config changes to access ports per new template
+# Paramerters:
+#   ssh<Netmiko> = ssh<Netmiko> = Netmiko SSH object - this is the connection to the switch
+#   config<Array[String]> = List of access ports to config (This is actually the running config of the access ports)
+#   switch<String> = switch hostname so we can tell if it's 3750 or 3850
+#
+# Return:
+#   result<Array[String]> = config commands that were applied to the switch
+def config_access_ports(ssh, config, switch):
+    # COMMANDS THAT WILL RUN ON SWITCH
+    commands = [
+            'no logging event link-status',
+            'power inline auto',
+            'source template BX_VOIP_VLAN_361_TEMPLATE']
+
+    result = []
+
+    # If we're working with a c3750 switch, we need to add two additional commands
+    if switch.find("3750") is not -1:
+        # COMMANDS THAT WILL RUN ON SWITCH
+        commands.append("srr-queue bandwidth share 1 30 35 5")
+        commands.append("priority-queue out")
+    
+    # For each access port:
+    for p in config:
+        # Sometimes the switch name prompt gets caught in the runnig config
+        # We want to make sure we're working with only interfaces
+        if p.find("interface") is not -1:
+            iface = p.split()
+            # COMMANDS THAT WILL RUN ON SWITCH
+            # should be 'interface GigabitEthernetX/X/XX'
+            commands.insert(0,iface[0])
+            # If the port already has a port-security maximum set
+            if p.find("maximum") is not -1:
+                # Send config commands to switch
+                result.append(ssh.send_config_set(commands))
+            # If the port has no port-sexurity maximum set, set it to 2
+            else:
+                # COMMANDS THAT WILL RUN ON SWITCH
+                commands.append("switchport port-security maximum 2")
+                # Send config commands to switch
+                result.append(ssh.send_config_set(commands))
+
+    # DEBUG
+    # print(commands)
+
+    # Return full list of commands that were run on the switch
     return result
 
 # Main program logic
@@ -106,7 +155,7 @@ def main():
     # Make sure user entered list of switches as command line arg
     # Pre-condition: File is formatted correctly with one switch hostname per line
     if len(sys.argv) == 1:
-        print("ERROR: You need to specify the file containing switches")
+        print("!ERROR: You need to specify the file containing switches")
         sys.exit(1)
 
     # Custom welcome message
@@ -144,8 +193,6 @@ def main():
 
                 # Make a dir for each switch as each switch will generate a few output files
                 os.mkdir(s)
-                # Switch hostname to IP address
-                ip = socket.gethostbyname(s)
 
                 # Get the VLAN IDs and access ports for workstaion VLANs and store in arrays
                 print("*Getting workstation VLANs and access ports...")
@@ -176,7 +223,7 @@ def main():
                 # No changes have been made to the switch yet
                 print("*Writing config before changes to file " + s + "-before.txt ...")
                 f = open(s + "/" + s + '-before.txt', 'w')
-                f.write(config)
+                f.write('\n\n'.join(config))
                 f.close()
                 print("*Done")
 
@@ -192,7 +239,6 @@ def main():
                 # Close ssh connection to switch
                 ssh.disconnect()
 
-                print()
                 # Gives the user a moment to review the output files that were generated, and that everything went okay
                 # Make sure we're ready for the next switch
                 print("*Review the output files if needed. No changes have been made yet")

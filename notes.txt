@@ -16,7 +16,7 @@ bx174a-a-1.c3750#sho vlan br | inc (W-I|WKSTN)
 2021
 3830
 
-#3/22/17 TROY: Done up to here
+#3/23/17 TROY: Done up to here
 #-> I think that step 3 is unnecessary as doing 'ex Te' removes the entire line
 #-> that has the trunk port. All of the access ports for the VLAN should be listed
 #-> in the output of step 1
