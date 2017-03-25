@@ -1,7 +1,9 @@
+[twc17@ares ~ ] -> ./fourpete.py switches.txt
 Welcome! This script will log in to each switch and grab the current configuration for all access ports in workstaion VLANs, make changes, then grab the new config.
-Are you ready to get started? (y/N): 
+Are you ready to get started? (y/N): y
 Enter username: twc17
 Enter password:
+
 !Current Switch: clg62-a-1.c3850.net.pitt.edu
 *Getting workstation VLANs and access ports...
 *Done

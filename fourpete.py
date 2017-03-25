@@ -178,11 +178,12 @@ def main():
         # Go over each switch that was listed in the file
         for s in switches:
             # Let us know which one we're working with
-            print("!Current Switch: " + s)
+            print("!Current switch " + s)
             if (check_host(s)):
                 # Build the ssh object
                 # Here is where we can specify anything specific about the switch
                 #   device type, secrete phrase, etc
+                print("*Establishing connection...")
                 ssh = netmiko.ConnectHandler(
                         device_type = 'cisco_ios',
                         ip = s,
@@ -191,9 +192,11 @@ def main():
 
                 # Open ssh connection
                 ssh.enable()
+                print("*Done")
 
                 # Make a dir for each switch as each switch will generate a few output files
-                os.mkdir(s)
+                if not os.path.exists(s):
+                    os.mkdir(s)
 
                 # Get the VLAN IDs and access ports for workstaion VLANs and store in arrays
                 print("*Getting workstation VLANs and access ports...")
@@ -202,7 +205,7 @@ def main():
 
                 # Just in case there are no workstation vlans on the switch, skip it
                 if len(vlans) == 0:
-                    print("!No work station VLANs, skipping")
+                    print("!No workstation VLANs, skipping switch " + s)
                     continue
 
                 # Get the running config for access ports in workstation VLANs and store in array
@@ -241,7 +244,7 @@ def main():
                 print("*Done")
 
                 # Write the changes that we made to a file
-                print("*Writing config output to file " + s + "-config.txt ...")
+                print("*Writing config changes that were made to file " + s + "-config.txt ...")
                 f = open(s + "/" + s + '-config.txt', 'w')
                 f.write('\n'.join(new))
                 f.close()
@@ -253,11 +256,16 @@ def main():
                 print("*Done")
 
                 # Write new config to file
-                print("*Writing new config changes to file " + s + "-after.txt ...")
+                print("*Writing new config to file " + s + "-after.txt ...")
                 f = open(s + "/" + s + '-after.txt', 'w')
                 f.write('\n\n'.join(config_new))
                 f.close()
                 print("*Done")
+
+                # Write config to memory
+                # print("*Writing config to memory...")
+                # ssh.send_command_expect('write memory')
+                # print("*Done")
 
                 # Done with the 'after' stuff
 
