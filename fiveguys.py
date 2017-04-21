@@ -49,7 +49,7 @@ def check_host(host):
     except socket.error:
         return 0
 
-# Connect to an edge switch and get VLAN IDs and access ports for workstation VLANs
+# Connect to an edge switch and get VLAN IDs for workstation VLANs
 # Parameters:
 #   ssh<Netmiko> = Netmiko SSH object - this is the connection to the switch
 #
@@ -70,7 +70,7 @@ def get_workstation_vlans(ssh):
     for v in output:
         # VLAN IDs are the only entries with just digits
         if v.isdigit():
-            vlans.append(v)
+            vlans.append(v + "p")
 
     return vlans
 
@@ -109,7 +109,6 @@ def main():
                 # Build the ssh object
                 # Here is where we can specify anything specific about the switch
                 #   device type, secrete phrase, etc
-                print("*Establishing connection ...")
                 ssh = netmiko.ConnectHandler(
                         device_type = 'cisco_ios',
                         ip = s,
@@ -118,12 +117,9 @@ def main():
 
                 # Open ssh connection
                 ssh.enable()
-                print("*Done")
 
-                # Get the VLAN IDs and access ports for workstaion VLANs and store in arrays
-                print("*Getting workstation VLANs ...")
+                # Get the VLAN IDs for workstaion VLANs and store in arrays
                 vlans = get_workstation_vlans(ssh)
-                print("*Done")
 
                 # Just in case there are no workstation vlans on the switch, skip it
                 if len(vlans) == 0:
@@ -131,14 +127,11 @@ def main():
                     continue
 
                 # Write switch name to file
-                f.write(s + ",")
+                f.write(s + " ")
                 # Write workstation VLAN IDs to file
-                print("*Writing workstation VLAN IDs to file ...")
                 f.write(','.join(vlans))
-                print("*Done")
 
                 # We're done with this switch
-                print("*Done with switch " + s)
 
                 # Close ssh connection to switch
                 ssh.disconnect()
