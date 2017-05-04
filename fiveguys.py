@@ -57,7 +57,7 @@ def check_host(host):
 #   vlans<Array[String]> = VLAN IDs of workstation VLANs
 def get_workstation_vlans(ssh):
     # COMMAND THAT WILL RUN ON SWITCH
-    cmd = "sh vl br | i (W-I|WKSTN|WKST)"
+    cmd = "sh vl br | i (W-I|WKSTN|WKST|WKS|workstation|WSK)"
     result = ssh.find_prompt() + "\n"
     # Send command to switch and get output
     result += ssh.send_command(cmd, delay_factor=2)
