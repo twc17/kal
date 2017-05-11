@@ -54,10 +54,12 @@ def check_host(host):
 #   ssh<Netmiko> = Netmiko SSH object - this is the connection to the switch
 #
 # Return:
-#   template<String> = VOIP template name and if it's configured correctly as one line
+#   result<String> = VOIP template name and if it's configured correctly as one line
 def get_template(ssh):
     # COMMAND THAT WILL RUN ON SWITCH
     cmd = "sh run | sec template"
+    search_1 = "switchport block unicast"
+    search_2 = "service-policy input custom_voip_policy"
     # Send command to switch and get output
     output = ssh.send_command_expect(cmd)
     output = output.splitlines()
@@ -69,12 +71,24 @@ def get_template(ssh):
             continue
         if "template" and "VOIP" in output[x]:
             if (x+1) < num_lines:
-                if "template" in output[x+1]:
-                    result += "(" + output[x].split()[1] + " - " + "!NO) "
-                else:
-                    result += "(" + output[x].split()[1] + " - " + "*YES) "
+                good_line_1 = False
+                good_line_2 = False
+                
+                for y in range(x+1, num_lines):
+                    if good_line_1 and good_line_2:
+                        result += output[x].split()[1] + ": yes "
+                        break
+                    if search_1 in output[y]:
+                        good_line_1 = True
+                    if search_2 in output[y]:
+                        good_line_2 = True
+                    if 'template' in output[y]:
+                        result += output[x].split()[1] + ": no "
+                        break
+                #if good_line_1 or good_line_2 == False:
+                    #result += output[x].split()[1] + ": no "
             else:
-                result += "(" + output[x].split()[1] + " - " + "!NO) "
+                result += output[x].split()[1] + ": no "
 
     return result
 
@@ -103,7 +117,7 @@ def main():
         user, password = user_input()
         print()
 
-        sw_tmp = open('sw_tmp.txt', 'w')
+        sw_tmp = open('switch_template_check.txt', 'w')
 
         # Go over each switch that was listed in the file
         for s in switches:
@@ -121,7 +135,7 @@ def main():
                 # Open ssh connection
                 ssh.enable()
                 # Write switch name to file
-                sw_tmp.write(s + " ")
+                sw_tmp.write(s + ": ")
 
                 # Get template information from switch and write to file
                 sw_tmp.write(get_template(ssh))
