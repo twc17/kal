@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 
-# Title: got_template_adapted.py
+# Title: got_resnet.py
 # Author: Troy W. Caro <twc17@pitt.edu>
-# Date: May 17, 2017 <5/17/17>
+# Date: May 24, 2017 <5/24/17>
 #
-# Purpose: To determinte if PittNet switches have a VOIP template and it's configured correctly
+# Purpose: Extract Resnet VLAN ID and name from switch
 #
 # Dependencies: 
 #          Ubuntu and Debian:
