@@ -165,6 +165,7 @@ def main():
 
                 # Write switch name to file
                 f.write(s + ",")
+
                 # Write dot1x VLAN IDs to file
                 f.write(','.join(pub_vlans))
 
@@ -176,6 +177,7 @@ def main():
                 # Close ssh connection to switch
                 ssh.disconnect()
 
+                # Write a new line after we're done with a switch
                 f.write('\n')
 
             # Hostname didn't resolve
