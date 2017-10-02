@@ -14,6 +14,8 @@
 #               gcc libffi-devel python3-devel openssl-devel
 #          Netmiko python3 module:
 #               Install using the following: sudo -H pip3 install netmiko
+#
+# TODO: Catch netmiko exceptions so that the program continues instead of exiting
 
 # Import statements
 import os
@@ -92,11 +94,12 @@ def get_vlans(ssh):
     pub_vlans = []
     ip_vlans = []
 
-    # TODO: Go over both lists at the same time
-    for v in output:
+    for p, i in zip(pub_output, ip_output):
         # VLAN IDs are the only entries with just digits
-        if v.isdigit():
-            vlans.append(v)
+        if p.isdigit():
+            pub_vlans.append(p)
+        if i.isdigit():
+            ip_vlans.append(i)
 
     return pub_vlans, ip_vlans
 
@@ -152,16 +155,21 @@ def main():
                 # Get the VLAN IDs for dot1x and VoIP VLANs and store in arrays
                 pub_vlans, ip_vlans = get_vlans(ssh)
 
-                # Just in case there are no workstation vlans on the switch, skip it
-                if len(vlans) == 0:
-                    print("No dot1x VLANs, skipping switch " + s)
-                    write_log("No dot1x VLANs, skipping switch " + s)
-                    continue
+                # If there are no dot1x VLANs, add an 'x' char to the arry
+                if len(pub_vlans) == 0:
+                    pub_vlans.append('x')
+
+                # If there are no VoIP VLANs, add an 'x' char to the arry
+                if len(ip_vlans) == 0:
+                    ip_vlans.append('x')
 
                 # Write switch name to file
-                f.write(s + " ")
-                # Write workstation VLAN IDs to file
-                f.write(','.join(vlans))
+                f.write(s + ",")
+                # Write dot1x VLAN IDs to file
+                f.write(','.join(pub_vlans))
+
+                # Write VoIP VLAN IDs to file
+                f.write(','.join(ip_vlans))
 
                 # We're done with this switch
 
