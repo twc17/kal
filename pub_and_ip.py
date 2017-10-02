@@ -94,7 +94,8 @@ def main():
     # Make sure user entered list of switches as command line arg
     # Pre-condition: File is formatted correctly with one switch hostname per line
     if len(sys.argv) == 1:
-        print("!ERROR: You need to specify the file containing switches")
+        print("ERROR: You need to specify the file containing switches")
+        write_log("ERROR: You need to specify the file containing switches")
         sys.exit(1)
 
     # Custom welcome message
@@ -113,12 +114,13 @@ def main():
         user, password = user_input()
         print()
 
-        f = open('workstation-vlans.txt', 'w')
+        f = open('pub_and_ip_vlans.txt', 'w')
 
         # Go over each switch that was listed in the file
         for s in switches:
             # Let us know which one we're working with
-            print("*Current switch " + s)
+            print("Current switch " + s)
+            write_log("Current switch " + s)
             if (check_host(s)):
                 # Build the ssh object
                 # Here is where we can specify anything specific about the switch
@@ -154,8 +156,8 @@ def main():
 
             # Hostname didn't resolve
             else:
-                print("!ERROR: Check hostname")
-                sys.exit(1)
+                print("ERROR: Check hostname for " + s)
+                write_log("ERROR: Check hostname for " + s)
         print()
         f.close()
         # No switches are left in the list, we're done
