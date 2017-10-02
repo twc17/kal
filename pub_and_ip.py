@@ -15,7 +15,7 @@
 #          Netmiko python3 module:
 #               Install using the following: sudo -H pip3 install netmiko
 #
-# TODO: Catch netmiko exceptions so that the program continues instead of exiting
+# TODO: Maybe figure out a better way to catch exceptions. Test it!
 
 # Import statements
 import os
