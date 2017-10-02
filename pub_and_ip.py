@@ -140,45 +140,49 @@ def main():
             print("Current switch " + s)
             write_log("Current switch " + s)
             if (check_host(s)):
-                # Build the ssh object
-                # Here is where we can specify anything specific about the switch
-                #   device type, secrete phrase, etc
-                ssh = netmiko.ConnectHandler(
-                        device_type = 'cisco_ios',
-                        ip = s,
-                        username = user,
-                        password = password)
+                try:
+                    # Build the ssh object
+                    # Here is where we can specify anything specific about the switch
+                    #   device type, secrete phrase, etc
+                    ssh = netmiko.ConnectHandler(
+                            device_type = 'cisco_ios',
+                            ip = s,
+                            username = user,
+                            password = password)
 
-                # Open ssh connection
-                ssh.enable()
+                    # Open ssh connection
+                    ssh.enable()
 
-                # Get the VLAN IDs for dot1x and VoIP VLANs and store in arrays
-                pub_vlans, ip_vlans = get_vlans(ssh)
+                    # Get the VLAN IDs for dot1x and VoIP VLANs and store in arrays
+                    pub_vlans, ip_vlans = get_vlans(ssh)
 
-                # If there are no dot1x VLANs, add an 'x' char to the arry
-                if len(pub_vlans) == 0:
-                    pub_vlans.append('x')
+                    # If there are no dot1x VLANs, add an 'x' char to the arry
+                    if len(pub_vlans) == 0:
+                        pub_vlans.append('x')
 
-                # If there are no VoIP VLANs, add an 'x' char to the arry
-                if len(ip_vlans) == 0:
-                    ip_vlans.append('x')
+                    # If there are no VoIP VLANs, add an 'x' char to the arry
+                    if len(ip_vlans) == 0:
+                        ip_vlans.append('x')
 
-                # Write switch name to file
-                f.write(s + ",")
+                    # Write switch name to file
+                    f.write(s + ",")
 
-                # Write dot1x VLAN IDs to file
-                f.write(','.join(pub_vlans))
+                    # Write dot1x VLAN IDs to file
+                    f.write(','.join(pub_vlans))
 
-                # Write VoIP VLAN IDs to file
-                f.write(','.join(ip_vlans))
+                    # Write VoIP VLAN IDs to file
+                    f.write(','.join(ip_vlans))
 
-                # We're done with this switch
+                    # We're done with this switch
 
-                # Close ssh connection to switch
-                ssh.disconnect()
+                    # Close ssh connection to switch
+                    ssh.disconnect()
 
-                # Write a new line after we're done with a switch
-                f.write('\n')
+                    # Write a new line after we're done with a switch
+                    f.write('\n')
+                except:
+                    print("Unexpected error with " + s)
+                    write_log("Unexpected error with " + s)
 
             # Hostname didn't resolve
             else:
