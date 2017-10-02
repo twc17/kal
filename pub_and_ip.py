@@ -2,6 +2,7 @@
 
 # Title: pub_and_ip.py
 # Author: Troy W. Caro <twc17@pitt.edu>
+# Version: 1.0.0
 # Last Modified: <10/02/17>
 #
 # Purpose: To extract public dot1x and VoIP VLAN IDs from c3750 and c3850 PittNet switches 
@@ -63,30 +64,41 @@ def check_host(host):
     except socket.error:
         return 0
 
-# Connect to an edge switch and get VLAN IDs for public dot1x VLANs
+# Connect to an edge switch and get VLAN IDs for public dot1x and VoIP VLANs
 # Parameters:
 #   ssh<Netmiko> = Netmiko SSH object - this is the connection to the switch
 #
 # Return:
-#   vlans<Array[String]> = VLAN IDs of dot1x VLANs
-def get_public_vlans(ssh):
+#   pub_vlans<Array[String]> = VLAN IDs of dot1x VLANs
+#   ip_vlans<Array[String]> = VLAN IDs of VoIP VLANs
+def get_vlans(ssh):
     # COMMAND THAT WILL RUN ON SWITCH
-    cmd = "sh vl br | i (PUB|DOT1X)"
-    result = ssh.find_prompt() + "\n"
+    pub_cmd = "sh vl br | i (PUB|DOT1X)"
+    # COMMAND THAT WILL RUN ON SWITCH
+    ip_cmd = "sh vl br | i IP-PHONE"
+
+    pub_result = ssh.find_prompt() + "\n"
     # Send command to switch and get output
-    result += ssh.send_command(cmd, delay_factor=2)
-
+    pub_result += ssh.send_command(pub_cmd, delay_factor=1)
     # This is the entire output of the command split into an array by whitespace
-    output = result.split()
+    pub_output = pub_result.split()
 
-    vlans = []
+    ip_result = ssh.find_prompt() + "\n"
+    # Send command to switch and get output
+    ip_result += ssh.send_command(ip_cmd, delay_factor=1)
+    # This is the entire output of the command split into an array by whitespace
+    ip_output = ip_result.split()
 
+    pub_vlans = []
+    ip_vlans = []
+
+    # TODO: Go over both lists at the same time
     for v in output:
         # VLAN IDs are the only entries with just digits
         if v.isdigit():
             vlans.append(v)
 
-    return vlans
+    return pub_vlans, ip_vlans
 
 # Main program logic
 #
@@ -110,10 +122,13 @@ def main():
         f = open(switch_file, 'r')
         for s in f:
             switches.append(s.strip())
+        f.close()
         # Get username and password for switches from keyboard
         user, password = user_input()
         print()
 
+        # File format:
+        # <switch>, <dot1x_vlan_id>, <voip_vlan_id>
         f = open('pub_and_ip_vlans.txt', 'w')
 
         # Go over each switch that was listed in the file
@@ -134,12 +149,13 @@ def main():
                 # Open ssh connection
                 ssh.enable()
 
-                # Get the VLAN IDs for workstaion VLANs and store in arrays
-                vlans = get_workstation_vlans(ssh)
+                # Get the VLAN IDs for dot1x and VoIP VLANs and store in arrays
+                pub_vlans, ip_vlans = get_vlans(ssh)
 
                 # Just in case there are no workstation vlans on the switch, skip it
                 if len(vlans) == 0:
-                    print("!No workstation VLANs, skipping switch " + s)
+                    print("No dot1x VLANs, skipping switch " + s)
+                    write_log("No dot1x VLANs, skipping switch " + s)
                     continue
 
                 # Write switch name to file
@@ -162,7 +178,9 @@ def main():
         f.close()
         # No switches are left in the list, we're done
         print("Done with all switches.")
+        write_log("Done with all switches.")
         print("Exiting")
+        write_log("Exiting")
 
 # Execute the program
 if __name__ == "__main__":
