@@ -2,8 +2,8 @@
 
 # Title: pub_and_ip.py
 # Author: Troy W. Caro <twc17@pitt.edu>
-# Version: 1.0.0
-# Last Modified: <10/02/17>
+# Version: 1.1.0
+# Last Modified: <10/03/17>
 #
 # Purpose: To extract public dot1x and VoIP VLAN IDs from c3750 and c3850 PittNet switches 
 #
