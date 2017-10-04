@@ -193,13 +193,15 @@ def main():
                     # Write a new line after we're done with a switch
                     f.write('\n')
                 except:
-                    print("Unexpected error with " + s)
-                    write_log("Unexpected error with " + s)
+                    print("ERROR: Unexpected exception with " + s)
+                    write_log("ERROR: Unexpected exception with " + s)
+                    f.write("ERROR: Unexpected exception with " + s + '\n')
 
             # Hostname didn't resolve
             else:
                 print("ERROR: Check hostname for " + s)
                 write_log("ERROR: Check hostname for " + s)
+                f.write("ERROR: Check hostname for " + s + '\n')
         print()
         f.close()
         # No switches are left in the list, we're done
