@@ -2,8 +2,8 @@
 
 # Title: pub_and_ip.py
 # Author: Troy W. Caro <twc17@pitt.edu>
-# Version: 1.0.0
-# Last Modified: <10/02/17>
+# Version: 1.1.0
+# Last Modified: <10/03/17>
 #
 # Purpose: To extract public dot1x and VoIP VLAN IDs from c3750 and c3850 PittNet switches 
 #
@@ -66,18 +66,15 @@ def check_host(host):
     except socket.error:
         return 0
 
-# Connect to an edge switch and get VLAN IDs for public dot1x and VoIP VLANs
+# Connect to an edge switch and get VLAN IDs for public dot1x VLANs
 # Parameters:
 #   ssh<Netmiko> = Netmiko SSH object - this is the connection to the switch
 #
 # Return:
 #   pub_vlans<Array[String]> = VLAN IDs of dot1x VLANs
-#   ip_vlans<Array[String]> = VLAN IDs of VoIP VLANs
 def get_vlans(ssh):
     # COMMAND THAT WILL RUN ON SWITCH
     pub_cmd = "sh vl br | i (PUB|DOT1X)"
-    # COMMAND THAT WILL RUN ON SWITCH
-    ip_cmd = "sh vl br | i IP-PHONE"
 
     pub_result = ssh.find_prompt() + "\n"
     # Send command to switch and get output
@@ -85,23 +82,35 @@ def get_vlans(ssh):
     # This is the entire output of the command split into an array by whitespace
     pub_output = pub_result.split()
 
-    ip_result = ssh.find_prompt() + "\n"
-    # Send command to switch and get output
-    ip_result += ssh.send_command(ip_cmd, delay_factor=1)
-    # This is the entire output of the command split into an array by whitespace
-    ip_output = ip_result.split()
-
     pub_vlans = []
-    ip_vlans = []
 
-    for p, i in zip(pub_output, ip_output):
+    for p in pub_output:
         # VLAN IDs are the only entries with just digits
         if p.isdigit():
             pub_vlans.append(p)
-        if i.isdigit():
-            ip_vlans.append(i)
 
-    return pub_vlans, ip_vlans
+    return pub_vlans
+
+# Connect to an edge switch and get VoIP template name
+# Parameters:
+#   ssh<Netmiko> -- ssh object for switch that we are connected to
+# Returns:
+#   template -- template name as string
+def get_template(ssh):
+    # COMMAND THAT WILL RUN ON SWITCH
+    cmd = "sh run | sec template"
+
+    # Send command to switch and get output
+    output = ssh.send_command_expect(cmd)
+    output = output.splitlines()
+
+    for line in output:
+        if "template" and "VOIP" and "source" in line:
+            continue
+        if "template" and "VOIP" in line:
+            return line.split()[1]
+
+    return ''
 
 # Main program logic
 #
@@ -154,24 +163,27 @@ def main():
                     ssh.enable()
 
                     # Get the VLAN IDs for dot1x and VoIP VLANs and store in arrays
-                    pub_vlans, ip_vlans = get_vlans(ssh)
+                    pub_vlans = get_vlans(ssh)
+
+                    # Get VoIP template name
+                    template = get_template(ssh)
 
                     # If there are no dot1x VLANs, add an 'x' char to the arry
                     if len(pub_vlans) == 0:
                         pub_vlans.append('x')
 
-                    # If there are no VoIP VLANs, add an 'x' char to the arry
-                    if len(ip_vlans) == 0:
-                        ip_vlans.append('x')
+                    # If there is no VoIP template, use an 'x' char
+                    if len(template) == 0:
+                        template = 'x'
 
                     # Write switch name to file
                     f.write(s + ",")
 
                     # Write dot1x VLAN IDs to file
-                    f.write(','.join(pub_vlans))
+                    f.write(','.join(pub_vlans) + ',')
 
-                    # Write VoIP VLAN IDs to file
-                    f.write(','.join(ip_vlans))
+                    # Write template name to file
+                    f.write(template)
 
                     # We're done with this switch
 
@@ -181,13 +193,15 @@ def main():
                     # Write a new line after we're done with a switch
                     f.write('\n')
                 except:
-                    print("Unexpected error with " + s)
-                    write_log("Unexpected error with " + s)
+                    print("ERROR: Unexpected exception with " + s)
+                    write_log("ERROR: Unexpected exception with " + s)
+                    f.write("ERROR: Unexpected exception with " + s + '\n')
 
             # Hostname didn't resolve
             else:
                 print("ERROR: Check hostname for " + s)
                 write_log("ERROR: Check hostname for " + s)
+                f.write("ERROR: Check hostname for " + s + '\n')
         print()
         f.close()
         # No switches are left in the list, we're done
